@@ -1,0 +1,9 @@
+---
+# Playbook to install external pentest environment
+- hosts: attack
+  become: true
+  environment:
+    PATH: "/usr/local/go/bin:{{ ansible_env.PATH }}"
+  roles:
+    - role: common
+    - role: attack

@@ -1,0 +1,127 @@
+user  www-data;
+worker_processes  auto;
+
+# Configure Error Logging
+error_log  /var/log/nginx/error_info.log info;
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    # Configure Logging Parameters
+    log_format custom '$remote_addr - $remote_user [$time_local] '
+                           '"$request" $status $body_bytes_sent '
+                           '"$http_referer" "$http_user_agent" "$gzip_ratio"';
+                           
+    # Ensure Access Logging is On
+    access_log  /var/log/nginx/access.log custom;
+
+    # Ensure Error Logging is On
+    error_log   /var/log/nginx/error.log warn;
+    
+    sendfile    on;
+    limit_conn_zone $binary_remote_addr zone=limitperip:10m; 
+    limit_req_zone $binary_remote_addr zone=ratelimit:10m rate=5r/s;
+
+    # Deny all traffic that doesn't exactly meet the requirements in other server configuration
+    server {
+        return 444;
+    }
+
+    # Redirect Port 80
+    server {
+        listen       80;
+        server_name {{ ansible_host }} {{ interactsh_web_domain }};
+        return 301 https://$host$request_uri;
+    }
+
+    # Interactsh listening 3000
+    upstream interactsh {
+        server 127.0.0.1:3000;
+        keepalive 8;
+    }
+
+    # Normal TLS Server. Proxy pass to Interactsh
+    server {
+        listen 443 ssl http2;
+            
+        server_name {{ ansible_host }} {{ interactsh_web_domain }};
+
+        # SSL Configuration
+        ssl_certificate  /etc/letsencrypt/live/{{ interactsh_web_domain }}/fullchain.pem;
+        ssl_certificate_key  /etc/letsencrypt/live/{{ interactsh_web_domain }}/privkey.pem;
+        ssl_protocols TLSv1.2 TLSv1.3;    
+        ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256';
+        ssl_prefer_server_ciphers on;
+        ssl_stapling on;
+        ssl_stapling_verify on;
+        ssl_session_tickets off;
+
+        # Rate Limiting
+        limit_req zone=ratelimit burst=10 nodelay;
+        limit_conn limitperip 10;
+
+        # Information Disclosure Mitigation
+        server_tokens        off;
+
+        # Denial of service Mitigations
+        keepalive_timeout 10;
+        send_timeout  10;
+        client_body_timeout   10;
+        client_max_body_size 100K;
+        client_header_timeout 10;
+        large_client_header_buffers 2 1k;
+
+        # Set Security Headers these may change depending on use case
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Xss-Protection "1; mode=block" always;
+        #add_header Content-Security-Policy "script-src * data: https://ssl.gstatic.com 'unsafe-eval'" always;
+        # add_header Referrer-Policy "no-referrer" always;
+        add_header Strict-Transport-Security "max-age=15768000;" always;
+
+        # Restrict HTTP Methods
+        if ($request_method !~ ^(GET|HEAD|POST)$) {
+            return 444;
+        }
+
+        # In order to add Public Key Pinning insert the hashes of the below configuration in the parameters below
+        # add_header Public-Key-Pins 'pin-sha256="base64+primary==InsertPrimaryCertificateSHA256FingerPrintHere"; pin-sha256="base64+backup==InsertBackupCertificateSHA256FingerPrintHere"; max-age=5184000;
+
+        # Change the below allow parameter IP Address and uncomment both the allow and deny command in order to setup IP based restrictions.
+        # allow 10.0.07;
+        # deny all;
+
+        # Restrict hidden files
+        location ~ /\.  { deny all; return 444; }
+
+        location / {
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header Host $http_host;
+            proxy_set_header X-NginX-Proxy true;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_pass http://interactsh;
+            proxy_redirect off;
+        }
+
+        # redirect server error pages to the static page /50x.html
+        error_page   500 502 503 504  /500err.html;
+        location = /50x.html {
+            root   /usr/share/nginx/html;
+        }   
+        # redirect client error pages to the static page /40x.html. This may require additional error codes be added.
+        error_page   400 401 402 403 404 405 418 /40x.html;
+        location = /40x.html {
+            root   /usr/share/nginx/html;
+        }
+
+    }
+}

@@ -1,0 +1,44 @@
+#!/bin/bash
+
+function flush() {
+    echo "[+] Flushing tables..."
+
+    # Flush iptables
+    iptables -F
+    iptables -X
+    iptables -Z 
+
+    # Flush and delete all nat and  mangle
+    iptables -t nat -F
+    iptables -t nat -X
+    iptables -t mangle -F
+    iptables -t mangle -X
+    iptables -t raw -F
+    iptables -t raw -X
+}
+
+function finish() {
+    echo "[+] Cleaning up and re-enabling iptables"
+    flush
+    iptables-restore < /etc/iptables/rules.v4
+    ip6tables-restore < /etc/iptables/rules.v6
+    systemctl stop docker --quiet
+    echo "[+] Done"
+}
+
+# Trap ctrl+c
+trap finish SIGINT
+
+# Flush tables and load custom
+flush
+iptables-restore < /etc/iptables/docker.rules.v4
+
+echo "[+] Restarting docker"
+# Restart docker
+systemctl stop docker --quiet
+systemctl start docker --quiet
+
+echo "[+] Running container"
+# Run interactsh-server docker image
+echo "[+] Payload directory: {{ payload_directory }}"
+docker run --network host -v {{ tool_directory }}:/root projectdiscovery/interactsh-server:latest -d {{ interactsh_domain }} -sa -cert /root/fullchain.pem -privkey /root/privkey.pem -http-index /root/index.html -http-directory /root/payloads --wildcard

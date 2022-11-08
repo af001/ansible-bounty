@@ -1,0 +1,61 @@
+#!/bin/bash
+
+function flush() {
+    echo "[+] Flushing tables..."
+
+    # Flush iptables
+    iptables -F
+    iptables -X
+    iptables -Z
+
+    # Flush and delete all nat and  mangle
+    iptables -t nat -F
+    iptables -t nat -X
+    iptables -t mangle -F
+    iptables -t mangle -X
+    iptables -t raw -F
+    iptables -t raw -X
+}
+
+function finish() {
+    echo "[+] Cleaning up and re-enabling iptables"
+    flush
+    iptables-restore < /etc/iptables/rules.v4
+    ip6tables-restore < /etc/iptables/rules.v6
+    kill -9 $(pidof node)
+    systemctl stop docker --quiet
+    systemctl stop nginx --quiet
+    echo "[+] Done"
+}
+
+# Trap ctrl+c
+trap finish SIGINT
+trap finish TERM
+
+# Flush tables and load custom
+flush
+iptables-restore < /etc/iptables/docker.rules.v4
+
+echo "[+] Starting nginx"
+systemctl start nginx --quiet
+
+echo "[+] Restarting docker"
+# Restart docker
+systemctl stop docker --quiet
+systemctl start docker --quiet
+
+echo "[+] Running container"
+# Run interactsh-server docker image
+echo "[+] Interactsh Web URL: https://darkarmour.sh"
+docker run --network host -v /work/tools:/root projectdiscovery/interactsh-web:latest &
+
+echo "Press any key to kill"
+while [ true ] ; do
+    read -t 5 -n 1
+    if [ $? = 0 ] ; then
+        finish
+        exit;
+    else
+        echo "waiting for the keypress to kill"
+fi
+done

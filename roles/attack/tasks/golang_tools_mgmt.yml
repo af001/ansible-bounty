@@ -1,0 +1,36 @@
+---
+# tasks file for golang tools
+- name: Check golang installed
+  stat:
+    path: /usr/local/go
+  register: check_golang
+
+- name: Remove old golang installations
+  file:
+    path: /usr/local/go
+    state: absent
+  when: not check_golang.stat.exists
+    
+- name: Install golang
+  unarchive:
+    src: "{{ golang_download_url }}"
+    dest: /usr/local
+    remote_src: yes
+
+- name: "Install go bug bounty tools"
+  command: "go install {{ item.url }}"
+  ignore_errors: yes
+  loop: "{{ golang_tools }}"
+
+- name: Check nuclei exists
+  stat: 
+    path: "{{ ansible_env.HOME }}/go/bin/nuclei"
+  register: nuclei_present
+
+- name: Initialize nuclei config
+  command: nuclei -h
+  when: nuclei_present.stat.exists
+
+- name: Update nuclei template directory
+  command: 'sed -i "s/#update-directory:/update-directory: {{ tool_directory }}/nuclei-templates"/g'
+  when: nuclei_present.stat.exists

@@ -1,0 +1,13 @@
+---
+# handlers file for common
+- name: restart sshd
+  service:
+    name: sshd
+    enabled: yes
+    state: restarted
+
+- name: shutdown nginx
+  service: 
+    name: nginx
+    state: stopped
+    enabled: no

@@ -1,0 +1,97 @@
+---
+# Golang download URL
+golang_download_url: https://go.dev/dl/go1.19.2.linux-amd64.tar.gz
+
+# List of urls for compiling or installing via installer
+metasploit_install: https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb
+peirates_install: https://github.com/inguardians/peirates/releases/download/v1.1.10/peirates-linux-amd64.tar.xz
+masscan_install: https://github.com/robertdavidgraham/masscan.git
+awscli_install: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+
+# Go-based tools
+golang_tools:
+  - name: gron
+    url: github.com/tomnomnom/waybackurls@latest
+  - name: assetfinder
+    url: github.com/tomnomnom/assetfinder@latest
+  - name: meg
+    url: github.com/tomnomnom/meg@latest
+  - name: ffuf
+    url: github.com/ffuf/ffuf@latest
+  - name: gf
+    url: github.com/tomnomnom/gf@latest
+  - name: qsreplace
+    url: github.com/tomnomnom/qsreplace@latest
+  - name: anew
+    url: github.com/tomnomnom/anew@latest
+  - name: httprobe
+    url: github.com/tomnomnom/httprobe@latest
+  - name: jaeles
+    url: github.com/jaeles-project/jaeles@latest
+  - name: gospider
+    url: github.com/jaeles-project/gospider@latest
+  - name: dalfox
+    url: github.com/hahwul/dalfox/v2@latest
+  - name: amass
+    url: github.com/OWASP/Amass/v3/...@master
+  - name: airixss
+    url: github.com/ferreiraklet/airixss@latest
+  - name: cariddi
+    url: github.com/edoardottt/cariddi/cmd/cariddi@latest
+  - name: gau
+    url: github.com/lc/gau/v2/cmd/gau@latest
+  - name: gowitness
+    url: github.com/sensepost/gowitness@latest
+  - name: goop
+    url: github.com/deletescape/goop@latest
+  - name: getJS
+    url: github.com/003random/getJS@latest
+  - name: hakrawler
+    url: github.com/hakluke/hakrawler@latest
+  - name: gobuster
+    url: github.com/OJ/gobuster/v3@latest
+  - name: commonspeak2
+    url: github.com/assetnote/commonspeak2@latest
+  - name: nuclei
+    url: github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
+  - name: subfinder
+    url: github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+  - name: httpx
+    url: github.com/projectdiscovery/httpx/cmd/httpx@latest
+  - name: naabu
+    url: github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+  - name: interactsh-client
+    url: github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest
+  - name: mapcidr
+    url: github.com/projectdiscovery/mapcidr/cmd/mapcidr@latest
+  - name: proxify
+    url: github.com/projectdiscovery/proxify/cmd/proxify@latest
+
+# List of python-tools on github
+python_tools:
+  - name: log4j-scan
+    url: https://github.com/fullhunt/log4j-scan.git
+  - name: sqlmap
+    url: https://github.com/sqlmapproject/sqlmap.git
+  - name: seclists
+    url: https://github.com/danielmiessler/SecLists.git 
+  - name: darkarmour
+    url: https://github.com/bats3c/darkarmour.git
+  - name: dirsearch
+    url: https://github.com/maurosoria/dirsearch.git
+  - name: kube-hunter
+    url: https://github.com/aquasecurity/kube-hunter.git
+  - name: whatwaf
+    url: https://github.com/Ekultek/WhatWaf.git 
+  - name: takeover
+    url: https://github.com/m4ll0k/takeover.git
+  - name: jaeles-signatures
+    url: https://github.com/jaeles-project/jaeles-signatures.git 
+  - name: nuclei-templates
+    url: https://github.com/projectdiscovery/nuclei-templates.git
+  - name: eyewitness
+    url: https://github.com/FortyNorthSecurity/EyeWitness.git 
+  - name: dnsrecon
+    url: https://github.com/darkoperator/dnsrecon.git 
+  - name: masscan
+    url: https://github.com/robertdavidgraham/masscan.git

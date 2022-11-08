@@ -1,0 +1,112 @@
+---
+# tasks file installing other random tools, not from github or go
+
+############# INSTALL PEIRATES #############
+- name: Fetch peirates
+  unarchive: 
+    src: "{{ peirates_install }}"
+    dest: /tmp
+    remote_src: yes
+
+- name: Find peirates
+  find:
+    depth: 3
+    file_type: file
+    paths: /tmp
+    recurse: yes
+    patterns: 
+      - "peirates"
+  register: foundpeirates
+
+- name: Make local bin directory
+  file:
+    path: "{{ ansible_env.HOME }}/.local/bin"
+    state: directory
+
+- name: Move peirates to PATH
+  shell: "chmod 755 {{ item.path }} && mv {{ item.path }} {{ ansible_env.HOME }}/.local/bin"
+  loop: "{{ foundpeirates.files }}"
+
+############# INSTALL METASPLOIT #############
+- name: Fech metasploit installer
+  get_url:
+    url: "{{ metasploit_install }}"
+    dest: /tmp/msfinstall
+    mode: 0755
+
+- name: Check msfinstall downloaded
+  stat:
+    path: "/tmp/msfinstall"
+  register: checkmsfinstall
+
+- name: Install metasploit
+  command: /tmp/msfinstall
+  when: checkmsfinstall.stat.exists
+
+############# INSTALL MASSCAN #############
+- name: Fetch masscan
+  git:
+    repo: "{{ masscan_install }}"
+    dest: "{{ tool_directory }}/masscan"
+    depth: 1
+    force: yes
+
+- name: Check masscan downloaded
+  stat:
+    path: "{{ tool_directory }}/masscan"
+  register: checkmasscan
+
+- name: Install masscan
+  shell: "make -j4 && make install"
+  args:
+    chdir: "{{ tool_directory }}/masscan"
+  when: checkmasscan.stat.exists
+
+############# INSTALL AWSCLI #############
+- name: Check awscli installation
+  stat:
+    path: "/usr/local/bin/aws"
+  register: awscliexists
+
+- name: Fetch awscli
+  unarchive: 
+    src: "{{ awscli_install }}"
+    dest: /tmp
+    remote_src: yes
+  when: not awscliexists.stat.exists
+
+- name: Check awscli installer
+  stat:
+    path: "/tmp/aws/install"
+  register: checkawscli
+  when: not awscliexists.stat.exists
+
+- name: Install awscli
+  command: /tmp/aws/install
+  when: not awscliexists.stat.exists
+
+############# INSTALL EVIL-WINRM #############
+- name: Install evil-winrm
+  gem: 
+    name: evil-winrm
+    norc: yes
+    state: present
+
+############# INSTALL CRACKMAPEXEC #############
+- name: Install crackmapexec
+  command: pipx install crackmapexec
+
+############# INSTALL RESPONDER #############
+- name: Fetch latest responder version
+  shell: 'curl -s https://api.github.com/repos/lgandx/Responder/tags | grep name | cut -f 4 -d "\"" | sort -u | tail -n1'
+  register: responderversion
+
+- name: Download responder
+  unarchive:
+    src: "https://github.com/lgandx/Responder/archive/refs/tags/{{ responderversion.stdout }}.zip"
+    dest: "{{ tool_directory }}"
+    remote_src: yes
+
+############# INSTALL RESPONDER #############
+- name: Fetch azure-cli
+  shell: "curl -sL https://aka.ms/InstallAzureCLIDeb | bash"

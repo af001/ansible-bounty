@@ -1,0 +1,4 @@
+---
+# Common vars. Located in playbooks/group_vars
+# ssh_port = dummy variable for checks
+ssh_port: 22

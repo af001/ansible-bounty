@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Open whole if iptables are enabled
+iptables -I INPUT -p tcp --dport 80 -j ACCEPT
+iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+
+# Start nginx, renew cert, then stop
+systemctl start nginx
+certbot --nginx renew
+systemctl stop nginx
+
+# Re-enable iptables
+iptables -D INPUT -p tcp --dport 80 -j ACCEPT
+iptables -D INPUT -p tcp --dport 443 -j ACCEPT
+
+# Copy cert and key
+copy -f /etc/letsencrypt/live/{{ interactsh_web_domain }}/fullchain.pem {{ fullchain_path }}
+copy -f /etc/letsencrypt/live/{{ interactsh_web_domain }}/privkey.pem {{ privkey_path }}

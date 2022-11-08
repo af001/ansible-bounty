@@ -1,0 +1,13 @@
+---
+# handlers file for interactsh
+- name: shutdown nginx
+  service: 
+    name: nginx
+    state: stopped
+    enabled: no
+
+- name: shutdown docker
+  service:
+    name: docker
+    state: stopped
+    enabled: no

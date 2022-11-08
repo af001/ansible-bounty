@@ -1,0 +1,8 @@
+---
+# Working directories for all hosts
+work_directory: /work
+tool_directory: "{{ work_directory }}/tools"
+note_directory: "{{ work_directory }}/notes"
+logs_directory: "{{ work_directory }}/logs"
+script_directory: "{{ work_directory }}/scripts"
+loot_directory: "{{ work_directory }}/loot"

@@ -1,0 +1,167 @@
+---
+############# INSTALL DEPENDENCIES #############
+
+- name: Install initial dependencies
+  apt:
+    state: present
+    name: 
+      - nginx
+      - certbot
+      - apt-transport-https
+      - ca-certificates
+      - gnupg 
+      - lsb-release
+      - python3-certbot-nginx
+
+- name: Check existing docker signing key
+  stat:
+    path: /usr/share/keyrings/docker-archive-keyring.gpg
+  register: check_docker_signing
+
+- name: Fetch docker signing key
+  shell: "curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg"
+  when: not check_docker_signing.stat.exists
+    
+- name: Add docker repo
+  apt_repository:
+    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+    state: present
+  when: not check_docker_signing.stat.exists
+
+- name: Upgrade Packages
+  register: upgrade_packages
+  apt:
+    upgrade: yes
+    update_cache: yes
+    state: latest
+    cache_valid_time: 5
+
+- name: Upgrade Stats
+  debug:
+    msg: "{{ upgrade_packages.stdout_lines|last }}"
+
+- name: Install docker
+  apt:
+    state: present
+    name: 
+      - docker-ce 
+      - docker-ce-cli 
+      - containerd.io
+
+- name: Install docker python
+  pip:
+    name: docker
+    state: present
+
+############# INSTALL DOCKER IMAGE #############
+
+- name: Pull interactsh-server docker image
+  docker_image: 
+    name: projectdiscovery/interactsh-web:latest
+    source: pull
+  notify:
+    - shutdown docker
+
+############# GET LETSENCRYPT CERTS #############
+
+- name: Check existing letsencrypt certs
+  stat:
+    path: "/etc/letsencrypt/live/{{ interactsh_web_domain }}/fullchain.pem"
+  register: check_letsencrypt
+
+- name: Flush iptables for certbot
+  command: iptables -F
+  when: not check_letsencrypt.stat.exists
+
+- name: Certbot pull certs from letsencrypt
+  command: "certbot --nginx -d {{ interactsh_web_domain }} --agree-tos certonly --register-unsafely-without-email"
+  when: not check_letsencrypt.stat.exists
+  notify:
+    - shutdown nginx
+
+- name: Reload iptables
+  shell: "iptables-restore < /etc/iptables/rules.v4 | cat"
+  when: not check_letsencrypt.stat.exists
+
+############# COPY NGINX FILES #############
+
+- name: Copy custom nginx.conf
+  template:
+    src: templates/nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: 644
+
+- name: Check sites-enabled files
+  find:
+    path: /etc/nginx/sites-enabled
+  register: cleanup
+  ignore_errors: true
+
+- name: Removing default sites-enabled file
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  ignore_errors: true
+
+############# STOP AND DISABLE NGINX #############
+
+- name: Force handlers to run
+  meta: flush_handlers
+
+############# COPY FILES #############
+
+- name: Check startup script
+  stat:
+    path: "{{ ansible_env.HOME }}/start_web_interact.sh"
+  register: check_startup
+
+- name: Copy startup script
+  template:
+    src: templates/start_web_interact.sh.j2
+    dest: "{{ ansible_env.HOME }}/start_web_interact.sh"
+    mode: 0755
+  when: not check_startup.stat.exists
+
+- name: Check certbot auto script
+  stat:
+    path: "{{ ansible_env.HOME }}/certbot_renew.sh"
+  register: certbot_script
+
+- name: Copy cron script to update certbot certs
+  template:
+    src: templates/certbot_renew.sh.j2
+    dest: "{{ ansible_env.HOME }}/certbot_renew.sh"
+    mode: 0755
+  when: not certbot_script.stat.exists
+
+- name: Add cronjob to run certbot daily
+  cron:
+    name: "certbot"
+    state: present
+    job: "{{ ansible_env.HOME }}/certbot_renew.sh &"
+    minute: 0
+    hour: 0
+
+- name: Check existing docker iptables rules
+  stat:
+    path: /etc/iptables/docker.rules.v4
+  register: docker_rules
+
+- name: Copy docker iptables rules
+  template:
+    src: templates/docker.rules.v4.j2
+    dest: /etc/iptables/docker.rules.v4
+    mode: 0755
+  when: not docker_rules.stat.exists
+
+- name: Copy custom 50x.html page
+  copy:
+    src: files/configs/50x.html
+    dest: /usr/share/nginx/html/50x.html
+    mode: 644
+
+- name: Copy custom 40x.html page
+  copy:
+    src: files/configs/40x.html
+    dest: /usr/share/nginx/html/40x.html
+    mode: 644

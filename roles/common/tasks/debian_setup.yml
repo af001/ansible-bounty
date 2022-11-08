@@ -1,0 +1,262 @@
+---
+############# DEBIAN PACKAGE MGMT #############
+- name: Upgrade Packages
+  register: upgrade_packages
+  apt:
+    upgrade: yes
+    update_cache: yes
+    state: latest
+    cache_valid_time: 3600
+
+- name: Upgrade Stats
+  debug:
+    msg: "{{ upgrade_packages.stdout_lines|last }}"
+
+- name: Install Packages
+  apt:
+    state: present
+    name:
+      - unzip 
+      - wget 
+      - python3-venv 
+      - socat 
+      - make 
+      - clang 
+      - iptables 
+      - net-tools 
+      - curl 
+      - vim 
+      - screen 
+      - git 
+      - python3-pip 
+      - nmap 
+      - python3-dev 
+      - build-essential 
+      - gcc 
+      - p7zip-full 
+      - zsh
+      - openssl
+      - libssl-dev
+      - perl
+      - iptables-persistent
+      - tcpdump
+
+############# UPDATE PIP #############
+
+- name: Check python pip in /usr/bin
+  stat:
+    path: "/usr/bin/pip"
+  register: check_pip
+
+- name: Check python pip in /usr/local/bin
+  stat:
+    path: "/usr/local/bin/pip"
+  register: check_pip2
+
+- name: Create pip symlink to /usr/local/bin/pip
+  command: ln -s /usr/local/bin/pip /usr/bin/pip
+  when: (check_pip2.stat.exists) and (not check_pip.stat.exists)
+
+- name: Upgrade pip
+  pip:
+    name: pip
+    extra_args: --upgrade
+
+############# DEBIAN ENVIRONMENT #############
+
+- name: Get current user
+  command: whoami
+  register: current_user
+
+- name: Set default shell to zsh
+  shell: "chsh -s $(which zsh) {{ current_user.stdout }}"
+
+- name: Fetch oh-my-zsh
+  get_url: 
+    url: https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
+    dest: /tmp/install.sh
+    mode: 0755
+
+- name: Check old oh-my-zsh installation
+  stat:
+    path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+  register: old_install
+
+- name: Remove old oh-my-zsh installation
+  file:
+    state: absent
+    path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+  when: old_install.stat.exists
+
+- name: Check oh-my-zsh installer
+  stat:
+    path: /tmp/install.sh
+  register: ohmyzsh
+
+- name: Install oh-my-zsh
+  command: sh install.sh --unattended
+  args:
+    chdir: /tmp
+  when: ohmyzsh.stat.exists
+
+- name: Copy .zshrc file
+  template: 
+    src: templates/zshrc.zsh.j2
+    dest: "{{ ansible_env.HOME }}/.zshrc"
+    mode: 0755
+
+- name: Create work directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ work_directory }}"
+    - "{{ tool_directory }}"
+    - "{{ note_directory }}"
+    - "{{ logs_directory }}"
+    - "{{ script_directory }}"
+    - "{{ loot_directory }}"
+
+- name: Check ssh port changed
+  shell: 'grep "Port 22" /etc/ssh/sshd_config | cat'
+  register: check_port_changed
+
+- name: Generate random ssh port
+  command: shuf -i 10000-65535 -n 1
+  register: gen_random_ssh
+  when: '"Port 22" in check_port_changed.stdout'
+
+- name: Set random ssh port as variable
+  set_fact:
+    ssh_port: "{{ gen_random_ssh.stdout }}"
+  when: '"Port 22" in check_port_changed.stdout'
+
+- name: Modify ssh port
+  command: 'sed -i "s/#Port 22/Port {{ ssh_port }}/g" /etc/ssh/sshd_config'
+  when: '"Port 22" in check_port_changed.stdout'
+
+- name: Show random ssh port
+  debug:
+    msg: "Generated SSH Port: {{ gen_random_ssh.stdout }}"
+  when: '"Port 22" in check_port_changed.stdout'
+
+- name: Modify ssh permit-root-login
+  command: 'sed -i "s/PermitRootLogin yes/PermitRootLogin without-password/g" /etc/ssh/sshd_config'
+  when: '"Port 22" in check_port_changed.stdout'
+
+- name: Modify ssh password-authentication
+  command: 'sed -i "s/PasswordAuthentication yes/PasswordAuthentication no/g" /etc/ssh/sshd_config'
+  notify:
+    - restart sshd
+  when: '"Port 22" in check_port_changed.stdout'
+
+- name: Force handlers to run
+  meta: flush_handlers
+
+- name: Check ssh login script
+  stat:
+    path: /etc/zsh/ssh_login.sh
+  register: check_ssh_script
+
+- name: Copy ssh login script
+  copy:
+    src: files/configs/ssh_login.sh
+    dest: /etc/zsh/ssh_login.sh
+    mode: 0755
+  when: not check_ssh_script.stat.exists
+
+- name: Check modified zprofile
+  shell: 'grep "unset" /etc/zsh/zprofile | cat'
+  register: check_zprofile
+
+- name: Copy zprofile to /etc/zsh
+  copy: 
+    src: files/configs/zprofile
+    dest: /etc/zsh/zprofile
+    mode: 644
+  when: '"unset" not in check_zprofile.stdout'
+
+- name: Retrieve ssh port from sshd_config
+  shell: 'cat /etc/ssh/sshd_config | grep -e "^Port" | cut -f 2 -d " "'
+  register: grab_ssh_port
+
+- name: Validate ssh port for iptables
+  set_fact:
+    ssh_port: "{{ grab_ssh_port.stdout }}"
+  when: '"Port 22" not in check_port_changed.stdout'
+
+- name: Copy custom iptables
+  template: 
+    src: templates/rules.v4.j2
+    dest: /etc/iptables/rules.v4
+    mode: 0755
+
+- name: Copy custom ip6tables
+  template: 
+    src: templates/rules.v6.j2
+    dest: /etc/iptables/rules.v6
+    mode: 0755
+
+- name: Reload iptables
+  shell: "iptables-restore < /etc/iptables/rules.v4"
+
+- name: Reload ip6tables
+  shell: "ip6tables-restore < /etc/iptables/rules.v6"
+
+- name: Check hushlogin
+  stat:
+    path: "{{ ansible_env.HOME }}/.hushlogin"
+  register: check_hush
+
+- name: Touch hushlogin
+  copy:
+    content: ""
+    dest: "{{ ansible_env.HOME }}/.hushlogin"
+    force: no
+    group: "{{ ansible_env.USER }}"
+    owner: "{{ ansible_env.USER }}"
+  when: not check_hush.stat.exists
+
+- name: Check modified hostname
+  command: hostname
+  register: check_hostname
+
+- name: Copy hostname generator files
+  copy:
+    src: files/helpers/codename/
+    dest: /tmp/codename/
+    directory_mode: yes
+  when: '"localhost" in check_hostname.stdout'
+
+- name: Generate cool hostname
+  command: python3 generator.py
+  args:
+    chdir: /tmp/codename
+  register: codename
+  when: '"localhost" in check_hostname.stdout'
+
+- name: Set cool hostname
+  command: "hostnamectl set-hostname {{ codename.stdout }}"
+  when: '"localhost" in check_hostname.stdout'
+
+- name: Check hostname
+  command: hostname
+  register: checked_hostname
+
+############# COPY CUSTOM FILES #############
+
+- name: Copy screenrc file
+  copy:
+    src: files/configs/screenrc
+    dest: "{{ ansible_env.HOME }}/.screenrc"
+    mode: 0755
+
+- name: Copy vimrc file
+  copy:
+    src: files/configs/vimrc
+    dest: "{{ ansible_env.HOME }}/.vimrc"
+    mode: 0755
+
+- name: Variables to copy for host
+  debug:
+    msg: "HOST_INFO|{{ ansible_host }}|{{ ssh_port }}|{{ checked_hostname.stdout }}"

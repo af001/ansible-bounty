@@ -1,0 +1,92 @@
+---
+# tasks file for python packages and dependencies
+- name: Install pip Packges
+  pip:
+    name:
+      - requests
+      - netifaces
+      - pexpect
+      - pacu
+      - pipx
+
+- name: Install git repos
+  git:
+    repo: "{{ item.url }}"
+    dest: "{{ tool_directory }}/{{ item.name }}"
+    depth: 1
+    force: yes
+  ignore_errors: yes
+  loop: "{{ python_tools }}"
+
+- name: Find requirements.txt if it exists
+  find:
+    depth: 2
+    file_type: file
+    paths: "{{ tool_directory }}"
+    recurse: yes
+    patterns: 
+      - "requirements.txt"
+  register: found_reqs
+
+- name: Install dependencies from requirements.txt
+  command: pip install -r requirements.txt
+  args:
+    chdir: "{{ item.path | dirname }}"
+  loop: "{{ found_reqs.files }}"
+
+- name: Find setup.py if it exists
+  find:
+    depth: 2
+    file_type: file
+    paths: "{{ tool_directory }}"
+    recurse: yes
+    patterns: 
+      - "setup.py"
+  register: found_setup
+
+- name: Install setup.py from repos
+  shell: "echo root | python3 setup.py install"
+  args:
+    chdir: "{{ item.path | dirname }}"
+  loop: "{{ found_setup.files }}"
+
+- name: Check darkarmour repo exists for bugfix
+  stat:
+    path: "{{ tool_directory }}/darkarmour/lib"
+  register: check_darkarmour
+
+- name: Fix darkarmour bug
+  copy:
+    content: ""
+    dest: "{{ tool_directory }}/darkarmour/lib/__init__.py"
+    force: no 
+    group: "{{ ansible_env.USER }}"
+    owner: "{{ ansible_env.USER }}"
+    mode: 0755
+  when: check_darkarmour.stat.exists
+
+- name: Check sqlmap installed
+  stat:
+    path: "{{ tool_directory }}/sqlmap"
+  register: check_sqlmap
+
+- name: Check whatwaf installed
+  stat:
+    path: "{{ tool_directory }}/whatwaf"
+  register: check_whatwaf
+
+- name: Copy whatwaf tampers to sqlmap
+  copy:
+    remote_src: yes
+    src:  "{{ tool_directory }}/whatwaf/content/tampers/"
+    dest: "{{ tool_directory }}/sqlmap/tampers/"
+  when: (check_whatwaf.stat.exists and check_sqlmap.stat.exists)
+
+- name: Check eyewitness installed
+  stat:
+    path: "{{ tool_directory }}/eyewitness/Python/setup/setup.sh"
+  register: check_eyewitness
+
+- name: Run eyewitness installer
+  shell: "cd {{ tool_directory }}/eyewitness/Python/setup/ && chmod 755 setup.sh && ./setup.sh"
+  when: check_eyewitness.stat.exists

@@ -1,0 +1,58 @@
+---
+############# DEBIAN PACKAGE MGMT #############
+- name: Upgrade Packages
+  register: upgradepkgs
+  apt:
+    upgrade: yes
+    update_cache: yes
+    state: latest
+    cache_valid_time: 3600
+
+- name: Upgrade Stats
+  debug:
+    msg: "{{ upgradepkgs.stdout_lines|last }}"
+
+- name: Install Packages
+  apt:
+    state: present
+    name:
+      - postgresql 
+      - ruby 
+      - ruby-dev 
+      - redis-tools 
+      - nginx 
+      - mingw-w64-tools 
+      - mingw-w64-common 
+      - g++-mingw-w64 
+      - gcc-mingw-w64 
+      - upx-ucl 
+      - osslsigncode 
+      - upx 
+      - chromium
+      - libpcap-dev
+
+- name: Check nginx installed
+  command: which nginx
+  register: checknginx
+
+- name: Stop and disable nginx
+  command: systemctl stop nginx
+  notify:
+    - shutdown nginx
+  when: '"nginx" in checknginx.stdout'
+
+- name: Force handlers to run
+  meta: flush_handlers
+
+- name: Include python package requirements and tools 
+  include_tasks: python_tools_mgmt.yml
+- name: Include other tools and mods
+  include_tasks: other_tools_mgmt.yml
+- name: Install golang and go-based tools
+  include_tasks: golang_tools_mgmt.yml
+
+- name: Copy custom scripts
+  copy: 
+    src: files/scripts/
+    dest: "{{ script_directory }}"
+    mode: 0755
