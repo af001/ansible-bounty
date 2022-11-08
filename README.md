@@ -7,14 +7,14 @@
 A set of Ansible playbooks to build a fresh bug bounty tools build on Debian 11. The playbooks also include options to build a personal interactsh-server for OOB testing. 
 
 ## Requirements
-1 x Debian VPS for attack machine build
-1 x Debian VPS for interactsh-server build (optional) w/domain
-1 x Debian VPS for interactsh-web build (optional) w/domain
+* 1 x Debian VPS for attack machine build
+* 1 x Debian VPS for interactsh-server build (optional) w/domain
+* 1 x Debian VPS for interactsh-web build (optional) w/domain
 
 For interactsh-server, you mush be able to modify your DNS zone file to add additional TXT and A records. SSL certs are obtained using certbot.
 
 ## Installation
-Each playbook will run tasks from the common role to setup a baseline environment on the Debian VPS. 
+Each playbook will run tasks from the common role to setup a baseline environment on the Debian VPS.
 
 Linux:
 
