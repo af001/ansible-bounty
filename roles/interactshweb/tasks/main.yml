@@ -141,7 +141,7 @@
     job: "{{ ansible_env.HOME }}/certbot_renew.sh &"
     minute: 0
     hour: 0
-
+    
 - name: Check existing docker iptables rules
   stat:
     path: /etc/iptables/docker.rules.v4

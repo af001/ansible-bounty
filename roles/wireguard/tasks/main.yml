@@ -1,0 +1,162 @@
+---
+# tasks file for wireguard
+- name: Install Wireguard
+  apt:
+    state: present
+    name:
+      - wireguard
+
+- name: Install passlib
+  pip:
+    state: present
+    name:
+      - passlib
+
+- name: Check existing wireguard-ui binary
+  stat:
+    path: "/usr/local/bin/wireguard-ui"
+  register: wireguard_ui
+
+- name: Fetch wireguard-ui
+  unarchive: 
+    src: "{{ DOWNLOAD_URL }}"
+    dest: /usr/local/bin
+    remote_src: yes
+  when: not wireguard_ui.stat.exists
+
+- name: Create wireguard-config directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ tool_directory }}/db/server"
+    - "{{ tool_directory }}/db/clients"
+    - "{{ tool_directory }}/db/wake_on_lan_hosts"
+
+#- name: Retrieve ssh port from sshd_config
+#  shell: 'cat /etc/ssh/sshd_config | grep -e "^Port" | cut -f 2 -d " "'
+#  register: grab_ssh_port
+
+#- name: Set SSH port variable for iptables
+#  set_fact:
+#    ssh_port: "{{ grab_ssh_port.stdout }}"
+
+- name: Get default gateway interface
+  shell: ip route list default | awk '{print $5}'
+  register: default_interface
+
+- name: Set default interface variable
+  set_fact:
+    gateway_interface: "{{ default_interface.stdout }}"
+
+- name: Copy server global settings
+  template:
+    src: templates/db/server/global_settings.json.j2
+    dest: "{{ tool_directory }}/db/server/global_settings.json"
+    mode: 0755
+
+- name: Copy server interfaces
+  template:
+    src: templates/db/server/interfaces.json.j2
+    dest: "{{ tool_directory }}/db/server/interfaces.json"
+    mode: 0755
+
+- name: Generate new private key
+  command: wg genkey
+  register: wg_privkey
+
+- name: Generate new public key
+  shell: 'echo "{{ wg_privkey.stdout }}" | wg pubkey'
+  register: wg_pubkey
+
+- name: Set new wg pub and priv key
+  set_fact:
+    PRIVATE_KEY: "{{ wg_privkey.stdout }}"
+    PUBLIC_KEY: "{{ wg_pubkey.stdout }}"
+
+- name: Copy server keypair
+  template:
+    src: templates/db/server/keypair.json.j2
+    dest: "{{ tool_directory }}/db/server/keypair.json"
+    mode: 0755
+
+- name: Set bcrypt password variable
+  set_fact:
+    WGUI_PASSWORD_HASH: "{{ WGUI_PASSWORD | password_hash('bcrypt', rounds=14) }}"
+
+- name: Copy server users
+  template:
+    src: templates/db/server/users.json.j2
+    dest: "{{ tool_directory }}/db/server/users.json"
+    mode: 0755
+
+- name: Copy initial wg0 config
+  template:
+    src: templates/wg0.conf.j2
+    dest: /etc/wireguard/wg0.conf
+    mode: 644
+
+- name: Check wgui.path file exists
+  stat:
+    path: /etc/systemd/system/wgui.path
+  register: wgui_path
+
+- name: Copy wgui.path file
+  copy:
+    src: files/configs/wgui.path
+    dest: /etc/systemd/system/wgui.path
+    mode: 0755
+  when: not wgui_path.stat.exists
+
+- name: Check wgui.service file exists
+  stat:
+    path: /etc/systemd/system/wgui.service
+  register: wgui_service
+
+- name: Copy wgui.service file
+  copy:
+    src: files/configs/wgui.service
+    dest:  /etc/systemd/system/wgui.service
+    mode: 0755
+  when: not wgui_service.stat.exists
+
+- name: Copy startup file 
+  template:
+    src: templates/start_gui.sh.j2
+    dest: "{{ ansible_env.HOME }}/start_gui.sh"
+    mode: 0755
+
+- name: Copy custom iptable rules for ui
+  template:
+    src: templates/ui.rules.v4.j2
+    dest: /etc/iptables/ui.rules.v4
+    mode: 0644
+
+- name: Copy modified default rules
+  template:
+    src: templates/rules.v4.j2
+    dest: /etc/iptables/rules.v4
+    mode: 0644
+
+- name: Reload iptables
+  shell: "iptables-restore < /etc/iptables/rules.v4"
+
+- name: Start wireguard
+  systemd:
+    name: "wg-quick@wg0.service"
+    enabled: yes
+    state: started
+
+- name: Enable wgui path
+  systemd:
+    name: wgui.path
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+- name: Enable wgui service
+  systemd: 
+    name: wgui.service
+    state: started
+    enabled: yes
+    daemon_reload: yes

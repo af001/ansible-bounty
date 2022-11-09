@@ -1,0 +1,20 @@
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [500:79004]
+-A INPUT -i wg0 -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -p tcp -m tcp --dport {{ ssh_port }} -m state --state NEW -m comment --comment "ALLOW SSH" -j ACCEPT
+-A INPUT -p udp -m udp --dport {{ WGUI_SERVER_LISTEN_PORT }} -m state --state NEW -m comment --comment "ALLOW WG" -j ACCEPT
+-A INPUT -j DROP
+-A FORWARD -i wg0 -j ACCEPT
+-A FORWARD -o wg0 -j ACCEPT
+COMMIT
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+-A POSTROUTING -o {{ gateway_interface }} -j MASQUERADE
+COMMIT

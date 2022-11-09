@@ -183,7 +183,7 @@
 - name: Validate ssh port for iptables
   set_fact:
     ssh_port: "{{ grab_ssh_port.stdout }}"
-  when: '"Port 22" not in check_port_changed.stdout'
+  when: '"Port 22 " not in check_port_changed.stdout'
 
 - name: Copy custom iptables
   template: 

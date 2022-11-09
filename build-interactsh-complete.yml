@@ -1,10 +1,10 @@
 ---
 # Playbook to deploy interactsh server
-#- hosts: interactsh_web
-#  become: true
-#  roles:
-#    - role: common
-#    - role: interactshweb
+- hosts: interactsh_web
+  become: true
+  roles:
+    - role: common
+    - role: interactshweb
 
 - hosts: interactsh_server
   become: true

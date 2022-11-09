@@ -1,0 +1,36 @@
+#!/bin/bash
+
+function flush() {
+    echo "[+] Flushing tables..."
+
+    # Flush iptables
+    iptables -F
+    iptables -X
+    iptables -Z 
+
+    # Flush and delete all nat and  mangle
+    iptables -t nat -F
+    iptables -t nat -X
+    iptables -t mangle -F
+    iptables -t mangle -X
+    iptables -t raw -F
+    iptables -t raw -X
+}
+
+function finish() {
+    echo "[+] Cleaning up and re-enabling iptables"
+    flush
+    iptables-restore < /etc/iptables/rules.v4
+    echo "[+] Done"
+}
+
+# Trap ctrl+c
+trap finish SIGINT
+
+# Flush tables and load custom
+flush
+iptables-restore < /etc/iptables/ui.rules.v4
+
+echo "[+] Running wireguard-gui: http://{{ ansible_host }}:5000"
+cd {{ tool_directory }}
+wireguard-ui
