@@ -1,0 +1,68 @@
+---
+- name: Deploy Linode attack infrastructure
+  hosts: localhost
+  become: true
+  vars:
+    attack:
+  roles:
+    - role: linode
+      vars:
+        host_group: attack
+
+- name: Configure attack nodes
+  hosts: attack
+  become: true
+  roles:
+    - role: common
+    - role: attack
+
+- name: Deploy Linode interactsh-server infrastructure
+  hosts: localhost
+  become: true
+  vars:
+    interactshserver:
+  roles:
+    - role: linode
+      vars:
+        host_group: interactshserver
+
+- name: Configure interactsh-server nodes
+  hosts: interactsh_server
+  become: true
+  roles:
+    - role: common
+    - role: interactshserver
+
+- name: Deploy Linode interactsh-web infrastructure
+  hosts: localhost
+  become: true
+  vars:
+    interactshweb:
+  roles:
+    - role: linode
+      vars:
+        host_group: interactshweb
+
+- name: Configure interactsh-web nodes
+  hosts: interactsh_web
+  become: true
+  roles:
+    - role: common
+    - role: interactshweb
+
+- name: Deploy Linode wireguard infrastructure
+  hosts: localhost
+  become: true
+  vars:
+    wireguard:
+  roles:
+    - role: linode
+      vars:
+        host_group: wireguard
+
+- name: Configure wireguard nodes
+  hosts: wireguard
+  become: true
+  roles:
+    - role: common
+    - role: wireguard

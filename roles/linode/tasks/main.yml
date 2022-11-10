@@ -1,0 +1,10 @@
+---
+# COMMON LINODE TASKS FOR EACH ROLE
+- name: Build attack Linodes
+  include_tasks: build_linode_attack.yml
+- name: Build iserver Linodes
+  include_tasks: build_linode_iserver.yml
+- name: Build iweb Linodes
+  include_tasks: build_linode_iweb.yml
+- name: Build wireguard Linodes
+  include_tasks: build_linode_wireguard.yml

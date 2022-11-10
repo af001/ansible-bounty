@@ -1,7 +1,8 @@
 ---
-# tasks file installing other random tools, not from github or go
+# INSTALL EVERYTHING NOT PYTHON OR GO FROM GITHUB
 
 ############# INSTALL PEIRATES #############
+
 - name: Fetch peirates
   unarchive: 
     src: "{{ peirates_install }}"
@@ -28,6 +29,7 @@
   loop: "{{ foundpeirates.files }}"
 
 ############# INSTALL METASPLOIT #############
+
 - name: Fech metasploit installer
   get_url:
     url: "{{ metasploit_install }}"
@@ -44,6 +46,7 @@
   when: checkmsfinstall.stat.exists
 
 ############# INSTALL MASSCAN #############
+
 - name: Fetch masscan
   git:
     repo: "{{ masscan_install }}"
@@ -63,6 +66,7 @@
   when: checkmasscan.stat.exists
 
 ############# INSTALL AWSCLI #############
+
 - name: Check awscli installation
   stat:
     path: "/usr/local/bin/aws"
@@ -86,6 +90,7 @@
   when: not awscliexists.stat.exists
 
 ############# INSTALL EVIL-WINRM #############
+
 - name: Install evil-winrm
   gem: 
     name: evil-winrm
@@ -93,10 +98,12 @@
     state: present
 
 ############# INSTALL CRACKMAPEXEC #############
+
 - name: Install crackmapexec
   command: pipx install crackmapexec
 
 ############# INSTALL RESPONDER #############
+
 - name: Fetch latest responder version
   shell: 'curl -s https://api.github.com/repos/lgandx/Responder/tags | grep name | cut -f 4 -d "\"" | sort -u | tail -n1'
   register: responderversion
@@ -108,5 +115,6 @@
     remote_src: yes
 
 ############# INSTALL RESPONDER #############
+
 - name: Fetch azure-cli
   shell: "curl -sL https://aka.ms/InstallAzureCLIDeb | bash"

@@ -1,14 +1,14 @@
 ---
-# Golang download URL
+# GOLANG DOWNLOAD URL
 golang_download_url: https://go.dev/dl/go1.19.2.linux-amd64.tar.gz
 
-# List of urls for compiling or installing via installer
+# LIST OF URLS FOR COMPILING OR INSTALLING VIA INSTALLER
 metasploit_install: https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb
 peirates_install: https://github.com/inguardians/peirates/releases/download/v1.1.10/peirates-linux-amd64.tar.xz
 masscan_install: https://github.com/robertdavidgraham/masscan.git
 awscli_install: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
 
-# Go-based tools
+# GO-BASED TOOLS
 golang_tools:
   - name: gron
     url: github.com/tomnomnom/waybackurls@latest
@@ -67,7 +67,7 @@ golang_tools:
   - name: proxify
     url: github.com/projectdiscovery/proxify/cmd/proxify@latest
 
-# List of python-tools on github
+# PYTHON TOOLS FROM GITHUB
 python_tools:
   - name: log4j-scan
     url: https://github.com/fullhunt/log4j-scan.git

@@ -36,7 +36,7 @@ http {
     # Redirect Port 80
     server {
         listen       80;
-        server_name {{ ansible_host }} {{ interactsh_web_domain }};
+        server_name {{ ansible_host }} {{ wireguard_domain }};
         return 301 https://$host$request_uri;
     }
 
@@ -50,11 +50,11 @@ http {
     server {
         listen 443 ssl http2;
             
-        server_name {{ ansible_host }} {{ interactsh_web_domain }};
+        server_name {{ ansible_host }} {{ wireguard_domain }};
 
         # SSL Configuration
-        ssl_certificate  /etc/letsencrypt/live/{{ interactsh_web_domain }}/fullchain.pem;
-        ssl_certificate_key  /etc/letsencrypt/live/{{ interactsh_web_domain }}/privkey.pem;
+        ssl_certificate  /etc/letsencrypt/live/{{ wireguard_domain }}/fullchain.pem;
+        ssl_certificate_key  /etc/letsencrypt/live/{{ wireguard_domain }}/privkey.pem;
         ssl_protocols TLSv1.2 TLSv1.3;    
         ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256';
         ssl_prefer_server_ciphers on;

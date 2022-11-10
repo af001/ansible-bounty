@@ -1,5 +1,5 @@
 ---
-# tasks file for golang tools
+# INSTALL ALL GO-BASED TOOLS
 - name: Check golang installed
   stat:
     path: /usr/local/go

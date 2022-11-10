@@ -1,0 +1,55 @@
+---
+########### BUILD ATTACK NODES ###########
+
+- name: Display attack node count
+  debug:
+    msg: " Building {{ attack.instances }} attack instances"
+  when: attack.instances|int > 0
+
+- name: Create a new Linode attack instances.
+  linode.cloud.instance:
+    label: "{{ attack.region }}-{{ attack.label }}-{{ item + 1 }}"
+    type: "{{ attack.type }}"
+    api_token: "{{ api_token }}"
+    region: "{{ attack.region }}"
+    image: "{{ image }}"
+    root_pass: "{{ password }}"
+    private_ip: false
+    authorized_keys:
+      - "{{ pubkey }}"
+    group: pentest
+    tags:
+      - "{{ attack.tag }}"
+    state: present
+  async: 120
+  poll: 0
+  changed_when: false
+  loop: "{{ range(0, attack.instances)|list }}"
+  register: instance_job
+  when: attack.instances|int > 0
+
+- name: Wait for all instances to be created
+  async_status:
+    jid: "{{ async_result_item.ansible_job_id }}"
+  loop: "{{ instance_job.results }}"
+  loop_control:
+    loop_var: "async_result_item"
+  register: instance_create
+  until: instance_create.finished
+  retries: 30
+  when: attack.instances|int > 0
+
+- name: Add instance to inventory
+  ansible.builtin.add_host:
+    name: '{{ item.instance.ipv4[0] }}'
+    groups: "{{ host_group }}"
+  loop: "{{ instance_create.results }}"
+  when: attack.instances|int > 0
+
+- name: Wait for SSH to be available before continuing
+  wait_for: 
+    host: "{{ item.instance.ipv4[0] }}" 
+    port: 22  
+    timeout: 300
+  with_items: "{{ instance_create.results }}"
+  when: attack.instances|int > 0

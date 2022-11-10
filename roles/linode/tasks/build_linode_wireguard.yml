@@ -1,0 +1,55 @@
+---
+########### BUILD WIREGUARD NODES ###########
+
+- name: Display wireguard node count
+  debug:
+    msg: " Building {{ wireguard.instances }} wireguard instances"
+  when: wireguard.instances|int > 0
+
+- name: Create a new Linode wireguard instances.
+  linode.cloud.instance:
+    label: "{{ wireguard.region }}-{{ wireguard.label }}-{{ item + 1 }}"
+    type: "{{ wireguard.type }}"
+    api_token: "{{ api_token }}"
+    region: "{{ wireguard.region }}"
+    image: "{{ image }}"
+    root_pass: "{{ password }}"
+    private_ip: false
+    authorized_keys:
+      - "{{ pubkey }}"
+    group: wireguard
+    tags:
+      - "{{ wireguard.tag }}"
+    state: present
+  async: 120
+  poll: 0
+  changed_when: false
+  loop: "{{ range(0, wireguard.instances)|list }}"
+  register: instance_job
+  when: wireguard.instances|int > 0
+
+- name: Wait for all instances to be created
+  async_status:
+    jid: "{{ async_result_item.ansible_job_id }}"
+  loop: "{{ instance_job.results }}"
+  loop_control:
+    loop_var: "async_result_item"
+  register: instance_create
+  until: instance_create.finished
+  retries: 30
+  when: wireguard.instances|int > 0
+
+- name: Add instance to inventory
+  ansible.builtin.add_host:
+    name: '{{ item.instance.ipv4[0] }}'
+    groups: "{{ host_group }}"
+  loop: "{{ instance_create.results }}"
+  when: wireguard.instances|int > 0
+
+- name: Wait for SSH to be available before continuing
+  wait_for: 
+    host: "{{ item.instance.ipv4[0] }}" 
+    port: 22  
+    timeout: 300
+  with_items: "{{ instance_create.results }}"
+  when: wireguard.instances|int > 0

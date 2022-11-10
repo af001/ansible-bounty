@@ -1,8 +1,13 @@
 ---
-# Working directories for all hosts
+# HOST DIRECTORIES
 work_directory: /work
 tool_directory: "{{ work_directory }}/tools"
 note_directory: "{{ work_directory }}/notes"
 logs_directory: "{{ work_directory }}/logs"
 script_directory: "{{ work_directory }}/scripts"
 loot_directory: "{{ work_directory }}/loot"
+
+# ANSIBLE OPTIONS
+ansible_ssh_port: 22
+ansible_ssh_private_key_file: ~/.ssh/node_ssh_key
+ansible_user: root

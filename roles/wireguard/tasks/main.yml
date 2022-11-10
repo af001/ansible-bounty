@@ -1,10 +1,17 @@
 ---
-# tasks file for wireguard
+############# WIREGUARD INSTALL DEPENDENCIES #############
+
 - name: Install Wireguard
   apt:
     state: present
     name:
       - wireguard
+      - nginx
+      - apt-transport-https
+      - ca-certificates
+      - gnupg 
+      - lsb-release
+      - python3-certbot-nginx
 
 - name: Install passlib
   pip:
@@ -33,13 +40,53 @@
     - "{{ tool_directory }}/db/clients"
     - "{{ tool_directory }}/db/wake_on_lan_hosts"
 
-#- name: Retrieve ssh port from sshd_config
-#  shell: 'cat /etc/ssh/sshd_config | grep -e "^Port" | cut -f 2 -d " "'
-#  register: grab_ssh_port
+############# GET LETSENCRYPT CERTS #############
 
-#- name: Set SSH port variable for iptables
-#  set_fact:
-#    ssh_port: "{{ grab_ssh_port.stdout }}"
+- name: Check existing letsencrypt certs
+  stat:
+    path: "/etc/letsencrypt/live/{{ wireguard_domain }}/fullchain.pem"
+  register: check_letsencrypt
+
+- name: Flush iptables for certbot
+  command: iptables -F
+  when: not check_letsencrypt.stat.exists
+
+- name: Certbot pull certs from letsencrypt
+  command: "certbot --nginx -d {{ wireguard_domain }} --agree-tos certonly --register-unsafely-without-email"
+  when: not check_letsencrypt.stat.exists
+  notify:
+    - shutdown nginx
+
+- name: Reload iptables
+  shell: "iptables-restore < /etc/iptables/rules.v4 | cat"
+  when: not check_letsencrypt.stat.exists
+
+############# COPY NGINX FILES #############
+
+- name: Copy custom nginx.conf
+  template:
+    src: templates/nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: 644
+
+- name: Check sites-enabled files
+  find:
+    path: /etc/nginx/sites-enabled
+  register: cleanup
+  ignore_errors: true
+
+- name: Removing default sites-enabled file
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  ignore_errors: true
+
+############# STOP AND DISABLE NGINX #############
+
+- name: Force handlers to run
+  meta: flush_handlers
+
+############# WIREGUARD-UI CONFIGURATION #############
 
 - name: Get default gateway interface
   shell: ip route list default | awk '{print $5}'
@@ -49,52 +96,86 @@
   set_fact:
     gateway_interface: "{{ default_interface.stdout }}"
 
+- name: Check existing global settings
+  stat:
+    path: "{{ tool_directory }}/db/server/global_settings.json"
+  register: global_settings
+
 - name: Copy server global settings
   template:
     src: templates/db/server/global_settings.json.j2
     dest: "{{ tool_directory }}/db/server/global_settings.json"
     mode: 0755
+  when: not global_settings.stat.exists
+
+- name: Check existing server interfaces file
+  stat:
+    path: "{{ tool_directory }}/db/server/interfaces.json"
+  register: interfaces_file
 
 - name: Copy server interfaces
   template:
     src: templates/db/server/interfaces.json.j2
     dest: "{{ tool_directory }}/db/server/interfaces.json"
     mode: 0755
+  when: not interfaces_file.stat.exists
+
+- name: Check existing wg0.conf
+  stat:
+    path: /etc/wireguard/wg0.conf
+  register: check_wg0
 
 - name: Generate new private key
   command: wg genkey
   register: wg_privkey
+  when: not check_wg0.stat.exists
 
 - name: Generate new public key
   shell: 'echo "{{ wg_privkey.stdout }}" | wg pubkey'
   register: wg_pubkey
+  when: not check_wg0.stat.exists
 
 - name: Set new wg pub and priv key
   set_fact:
     PRIVATE_KEY: "{{ wg_privkey.stdout }}"
     PUBLIC_KEY: "{{ wg_pubkey.stdout }}"
+  when: not check_wg0.stat.exists
+
+- name: Check server keypair file
+  stat: 
+    path: "{{ tool_directory }}/db/server/keypair.json"
+  register: check_keypair
 
 - name: Copy server keypair
   template:
     src: templates/db/server/keypair.json.j2
     dest: "{{ tool_directory }}/db/server/keypair.json"
     mode: 0755
+  when: not check_keypair.stat.exists
+
+- name: Check existing users file
+  stat:
+    path: "{{ tool_directory }}/db/server/users.json"
+  register: users_file
 
 - name: Set bcrypt password variable
   set_fact:
     WGUI_PASSWORD_HASH: "{{ WGUI_PASSWORD | password_hash('bcrypt', rounds=14) }}"
+  when: not users_file.stat.exists
 
 - name: Copy server users
   template:
     src: templates/db/server/users.json.j2
     dest: "{{ tool_directory }}/db/server/users.json"
     mode: 0755
+  when: not users_file.stat.exists
 
 - name: Copy initial wg0 config
   template:
     src: templates/wg0.conf.j2
     dest: /etc/wireguard/wg0.conf
     mode: 644
+  when: not check_wg0.stat.exists
 
 - name: Check wgui.path file exists
   stat:
@@ -120,6 +201,11 @@
     mode: 0755
   when: not wgui_service.stat.exists
 
+- name: Check existing startup file
+  stat:
+    path: "{{ ansible_env.HOME }}/start_gui.sh"
+  register: start_gui
+
 - name: Copy startup file 
   template:
     src: templates/start_gui.sh.j2
@@ -131,6 +217,7 @@
     src: templates/ui.rules.v4.j2
     dest: /etc/iptables/ui.rules.v4
     mode: 0644
+  when: not start_gui.stat.exists
 
 - name: Copy modified default rules
   template:
@@ -139,7 +226,9 @@
     mode: 0644
 
 - name: Reload iptables
-  shell: "iptables-restore < /etc/iptables/rules.v4"
+  shell: "iptables-restore < /etc/iptables/rules.v4 | cat"
+
+############# START SERVICES #############
 
 - name: Start wireguard
   systemd:

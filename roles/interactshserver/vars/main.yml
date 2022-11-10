@@ -1,16 +1,8 @@
 ---
-# vars file for interactsh
+# INTERACTSH VARS
 interactsh_domain: example.com
 volume_directory: "{{ tool_directory }}"
 fullchain_path: "{{ tool_directory }}/fullchain.pem"
 privkey_path: "{{ tool_directory }}/privkey.pem"
 payload_directory: "{{ tool_directory }}/payloads"
-
-# Interactsh-server variables. For reverse-proxy setup
-dns_port: 10053
-http_port: 10080
-smtp_port: 10025
-ldap_port: 10389
-smb_port: 10445
-ftp_port: 10021
 

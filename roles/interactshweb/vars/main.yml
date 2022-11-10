@@ -1,5 +1,5 @@
 ---
-# vars file for interactsh-web
+# INTERACTSH-WEB VARS
 web_port: 443
 interactsh_web_domain: example.com
 volume_directory: "{{ tool_directory }}"

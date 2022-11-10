@@ -1,0 +1,55 @@
+---
+########### BUILD INTERACTSH-WEB NODES ###########
+
+- name: Display iweb node count
+  debug:
+    msg: " Building {{ iweb.instances }} interactsh-web instances"
+  when: iweb.instances|int > 0
+
+- name: Create a new Linode interactsh-web instances.
+  linode.cloud.instance:
+    label: "{{ iweb.region }}-{{ iweb.label }}-{{ item + 1 }}"
+    type: "{{ iweb.type }}"
+    api_token: "{{ api_token }}"
+    region: "{{ iweb.region }}"
+    image: "{{ image }}"
+    root_pass: "{{ password }}"
+    private_ip: false
+    authorized_keys:
+      - "{{ pubkey }}"
+    group: interactsh
+    tags:
+      - "{{ iweb.tag }}"
+    state: present
+  async: 120
+  poll: 0
+  changed_when: false
+  loop: "{{ range(0, iweb.instances)|list }}"
+  register: instance_job
+  when: iweb.instances|int > 0
+
+- name: Wait for all instances to be created
+  async_status:
+    jid: "{{ async_result_item.ansible_job_id }}"
+  loop: "{{ instance_job.results }}"
+  loop_control:
+    loop_var: "async_result_item"
+  register: instance_create
+  until: instance_create.finished
+  retries: 30
+  when: iweb.instances|int > 0
+
+- name: Add instance to inventory
+  ansible.builtin.add_host:
+    name: '{{ item.instance.ipv4[0] }}'
+    groups: "{{ host_group }}"
+  loop: "{{ instance_create.results }}"
+  when: iweb.instances|int > 0
+
+- name: Wait for SSH to be available before continuing
+  wait_for: 
+    host: "{{ item.instance.ipv4[0] }}" 
+    port: 22  
+    timeout: 300
+  with_items: "{{ instance_create.results }}"
+  when: iweb.instances|int > 0

@@ -1,0 +1,41 @@
+---
+# https://api.linode.com/v4/regions
+# https://api.linode.com/v4/linode/types
+
+# COMMON VARIABLES
+image: linode/debian11
+
+# ATTACK BUILD
+attack:
+  instances: 0
+  region: us-central
+  #type: g6-standard-2
+  type: g6-nanode-1
+  label: "attack"
+  tag: attack
+
+# INTERACTSH-SERVER BUILD
+iserver:
+  instances: 0
+  region: us-central
+  type: g6-nanode-1
+  label: "interactsh-server"
+  tag: iserver
+
+# INTERACTSH-WEB BUILD
+iweb:
+  instances: 0
+  region: us-central
+  type: g6-standard-1
+  label: "interactsh-web"
+  tag: iweb
+
+# WIREGUARD BUILD
+wireguard:
+  instances: 1
+  region: us-central
+  type: g6-nanode-1
+  label: "wireguard"
+  tag: wireguard
+
+# BUILD CREDENTIALS AND SECRETS

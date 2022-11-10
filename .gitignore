@@ -39,3 +39,6 @@ Thumbs.db
 # Dev Files #
 #############
 inventory_dev.ini
+*vault_pass
+*notes.txt
+group_vars/vars.yml
