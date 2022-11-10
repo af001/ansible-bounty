@@ -47,6 +47,9 @@ chmod 600 .vault-pass
 
 Using the vault-pass file to encrypt your SSH public key, Linode API token, and SSH password. Replace the values between `<>` with your values. 
 ```sh
+# Add new line at end of main.yml
+echo "" >> roles/linode/vars/main.yml
+
 # Linode API Token
 ansible-vault encrypt_string '<replace-with-your-Linode-API-token' --name 'api_token' --vault-password-file=.vault_pass | tee -a roles/linode/vars/main.yml
 
