@@ -1,6 +1,5 @@
 ---
 # INTERACTSH VARS
-interactsh_domain: example.com
 volume_directory: "{{ tool_directory }}"
 fullchain_path: "{{ tool_directory }}/fullchain.pem"
 privkey_path: "{{ tool_directory }}/privkey.pem"

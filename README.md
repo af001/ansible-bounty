@@ -119,19 +119,9 @@ ansible_ssh_private_key_file: <path-to-your-privkey>
 
 ```
 
-For interactsh-server, modify vars.yml to include your domain:
+For interactsh-server, interactsh-web, and wireguard, modify vars.yml to include your domains:
 ```sh
-vim roles/interactshserver/vars/main.yml
-```
-
-For interactsh-web, modify vars.yml to include your domain:
-```sh
-vim roles/interactshweb/vars/main.yml
-```
-
-For wireguard, modify vars.yml to include your domain:
-```sh
-vim roles/wireguard/vars/main.yml
+vim global_vars/all.yml
 ```
 
 Run the master playbook:
@@ -140,6 +130,20 @@ ansible-playbook --vault-password-file=.vault_pass build-master.yml -K
 ```
 
 Once complete, you can SSH to the hosts. The build will generate a random-high SSH port that will be displayed in the ansible output. Each build sets a default set of Iptable rules to help protect the server when it is not used. When running the interactsh builds, there is a start.sh file in the root of each host. This file will start the container and modify the rules appropriately. By default, the first time you login your IP address will be set as the only allowable SSH host to further harden the VPS. 
+
+## Individual Playbooks
+Individual playbooks for each role can also be found in the `./playboks/` directory. To run these, move the `inventory.ini` and `<playbook>.yml` file to the root directory.
+```sh
+# Example: Linode is already built, just run the attack playbook to setup the VPS
+mv playbooks/build_attack.yml .
+mv playbooks/inventory.ini .
+
+# Update the inventory
+vim inventory.ini
+
+# Run the playbook
+ansible-playbook build-attack.yml -i inventory_dev.ini
+```
 
 ## DNS Settings
 The interactsh-server will need a wildcard A record so the random generated URLs resolve to your server. 

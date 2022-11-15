@@ -46,6 +46,44 @@
   loop: "{{ instance_create.results }}"
   when: iserver.instances|int > 0
 
+- name: Create a domain
+  linode.cloud.domain:
+    api_token: "{{ api_token }}"
+    domain: "{{ item[0].domain }}"
+    type: master
+    state: present
+    soa_email: 'admin@{{ item[0].domain }}'
+  with_nested:
+    - "{{ interactsh_server_domain }}"
+    - "{{ instance_create.results }}"
+  when: iserver.instances|int > 0
+
+- name: Create a primary A record
+  linode.cloud.domain_record:
+    api_token: "{{ api_token }}"
+    domain: "{{ item[0].domain }}"
+    name: "{{ item[0].domain }}"
+    type: 'A'
+    target: '{{ item[1].instance.ipv4[0] }}'
+    state: present
+  with_nested:
+    - "{{ interactsh_server_domain }}"
+    - "{{ instance_create.results }}"
+  when: iserver.instances|int > 0
+
+- name: Create a wildcard A record
+  linode.cloud.domain_record:
+    api_token: "{{ api_token }}"
+    domain: "{{ item[0].domain }}"
+    name: "*"
+    type: 'A'
+    target: '{{ item[1].instance.ipv4[0] }}'
+    state: present
+  with_nested:
+    - "{{ interactsh_server_domain }}"
+    - "{{ instance_create.results }}"
+  when: iserver.instances|int > 0
+
 - name: Wait for SSH to be available before continuing
   wait_for: 
     host: "{{ item.instance.ipv4[0] }}" 

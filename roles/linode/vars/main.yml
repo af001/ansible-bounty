@@ -7,7 +7,7 @@ image: linode/debian11
 
 # ATTACK BUILD
 attack:
-  instances: 0
+  instances: 1
   region: us-central
   #type: g6-standard-2
   type: g6-nanode-1
@@ -16,7 +16,7 @@ attack:
 
 # INTERACTSH-SERVER BUILD
 iserver:
-  instances: 0
+  instances: 1
   region: us-central
   type: g6-nanode-1
   label: "interactsh-server"
@@ -24,7 +24,7 @@ iserver:
 
 # INTERACTSH-WEB BUILD
 iweb:
-  instances: 0
+  instances: 1
   region: us-central
   type: g6-standard-1
   label: "interactsh-web"

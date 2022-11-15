@@ -71,7 +71,7 @@
 
 - name: Check existing letsencrypt certs
   stat:
-    path: "/etc/letsencrypt/live/{{ interactsh_domain }}/fullchain.pem"
+    path: "/etc/letsencrypt/live/{{ interactsh_server_domain }}/fullchain.pem"
   register: check_letsencrypt
 
 - name: Flush iptables for certbot
@@ -79,7 +79,7 @@
   when: not check_letsencrypt.stat.exists
 
 - name: Certbot pull certs from letsencrypt
-  command: "certbot --nginx -d {{ interactsh_domain }} --agree-tos certonly --register-unsafely-without-email"
+  command: "certbot --nginx -d {{ interactsh_server_domain }} --agree-tos certonly --register-unsafely-without-email"
   when: not check_letsencrypt.stat.exists
   notify:
     - shutdown nginx
@@ -90,13 +90,13 @@
 
 - name: Copy fullchain.pem
   copy:
-    src: "/etc/letsencrypt/live/{{ interactsh_domain }}/fullchain.pem"
+    src: "/etc/letsencrypt/live/{{ interactsh_server_domain }}/fullchain.pem"
     dest: "{{ fullchain_path }}"
     remote_src: yes
 
 - name: Copy privkey.pem
   copy:
-    src: "/etc/letsencrypt/live/{{ interactsh_domain }}/privkey.pem"
+    src: "/etc/letsencrypt/live/{{ interactsh_server_domain }}/privkey.pem"
     dest: "{{ privkey_path }}"
     remote_src: yes
 
