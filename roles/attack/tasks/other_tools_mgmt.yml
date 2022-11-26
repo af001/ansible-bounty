@@ -118,3 +118,19 @@
 
 - name: Fetch azure-cli
   shell: "curl -sL https://aka.ms/InstallAzureCLIDeb | bash"
+  
+############# INSTALL HELPERS #############
+
+- name: Fetch PayloadAllTheThings
+  git:
+    repo: "{{ payloadatt_install }}"
+    dest: "{{ tool_directory }}/PayloadAllTheThings"
+    depth: 1
+    force: yes
+
+- name: Fetch IntruderPayloads
+  git:
+    repo: "{{ intruderpayloads_install }}"
+    dest: "{{ tool_directory }}/IntruderPayloads"
+    depth: 1
+    force: yes
