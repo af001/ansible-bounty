@@ -7,6 +7,8 @@ metasploit_install: https://raw.githubusercontent.com/rapid7/metasploit-omnibus/
 peirates_install: https://github.com/inguardians/peirates/releases/download/v1.1.10/peirates-linux-amd64.tar.xz
 masscan_install: https://github.com/robertdavidgraham/masscan.git
 awscli_install: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+payloadatt_install: https://github.com/swisskyrepo/PayloadsAllTheThings.git
+intruderpayloads_install: https://github.com/1N3/IntruderPayloads.git
 
 # GO-BASED TOOLS
 golang_tools:
