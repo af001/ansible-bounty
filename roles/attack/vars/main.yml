@@ -68,6 +68,8 @@ golang_tools:
     url: github.com/projectdiscovery/mapcidr/cmd/mapcidr@latest
   - name: proxify
     url: github.com/projectdiscovery/proxify/cmd/proxify@latest
+  - name: dnsx
+    url: github.com/projectdiscovery/dnsx/cmd/dnsx@latest
 
 # PYTHON TOOLS FROM GITHUB
 python_tools:
